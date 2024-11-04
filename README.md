@@ -44,5 +44,3 @@ Implement hybrid encryption approaches
 Use quantum-safe key derivation functions
 
 Improve random number generation
-
-Translate to English
