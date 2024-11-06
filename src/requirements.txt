@@ -1,7 +1,0 @@
-PyQt5==5.15.7
-cryptography==3.4.8
-argon2-cffi==21.1.0
-sqlalchemy==1.4.22
-configparser==5.0.2
-PyCryptodome==3.10.1
-pysqlcipher3==1.0.3
