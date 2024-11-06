@@ -3,11 +3,10 @@
 import os
 import logging
 from typing import Tuple
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, padding
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-
 
 class CryptoManager:
     """
@@ -50,37 +49,47 @@ class CryptoManager:
         """
         return os.urandom(16)
 
-    def generate_random_key(self) -> bytes:
-        """
-        Generiert einen zufälligen Schlüssel mit der festgelegten Schlüssellänge.
-
-        :return: Zufälliger Schlüssel
-        """
-        return os.urandom(self.key_length)
-
     def encrypt(self, data: bytes, key: bytes) -> Tuple[bytes, bytes]:
         """
         Verschlüsselt die Daten mit dem angegebenen Schlüssel.
 
         :param data: Zu verschlüsselnde Daten
         :param key: Verschlüsselungsschlüssel
-        :return: Tuple aus verschlüsselten Daten und Nonce
+        :return: Tuple aus verschlüsselten Daten und IV
         """
         try:
-            aesgcm = AESGCM(key)
-            nonce = os.urandom(12)
-            encrypted_data = aesgcm.encrypt(nonce, data, None)
-            return encrypted_data, nonce
+            iv = os.urandom(16)
+            cipher = Cipher(algorithms.AES(key), modes.GCM(iv), backend=self.backend)
+            encryptor = cipher.encryptor()
+
+            # Padding anwenden
+            padder = padding.PKCS7(128).padder()
+            padded_data = padder.update(data) + padder.finalize()
+
+            encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+            return encrypted_data, iv
         except Exception as e:
             logging.error(f"Fehler bei der Verschlüsselung: {e}")
             raise
 
-    def decrypt(self, encrypted_data: bytes, key: bytes, nonce: bytes) -> bytes:
+    def decrypt(self, encrypted_data: bytes, key: bytes, iv: bytes) -> bytes:
+        """
+        Entschlüsselt die Daten mit dem angegebenen Schlüssel und IV.
+
+        :param encrypted_data: Verschlüsselte Daten
+        :param key: Entschlüsselungsschlüssel
+        :param iv: Initialisierungsvektor
+        :return: Entschlüsselte Daten
+        """
         try:
-            aesgcm = AESGCM(key)
-            return aesgcm.decrypt(nonce, encrypted_data, None)
-        
+            cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=self.backend)
+            decryptor = cipher.decryptor()
+            padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
+
+            # Padding entfernen
+            unpadder = padding.PKCS7(128).unpadder()
+            data = unpadder.update(padded_data) + unpadder.finalize()
+            return data
         except Exception as e:
             logging.error(f"Fehler bei der Entschlüsselung: {e}")
             raise
-

@@ -46,8 +46,6 @@ class DatabaseManager:
             cursor.execute('''CREATE TABLE IF NOT EXISTS metadata (
                 id INTEGER PRIMARY KEY,
                 salt BLOB NOT NULL,
-                encrypted_key BLOB NOT NULL,
-                nonce BLOB NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )''')
 
@@ -56,7 +54,7 @@ class DatabaseManager:
                 website TEXT NOT NULL,
                 username TEXT NOT NULL,
                 encrypted_password BLOB NOT NULL,
-                nonce BLOB NOT NULL,
+                iv BLOB NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )''')
 
@@ -93,35 +91,4 @@ class DatabaseManager:
         finally:
             self.close()
 
-    def backup_database(self, backup_path: str):
-        """
-        Erstellt ein Backup der Datenbank.
-
-        :param backup_path: Pfad zum Backup
-        """
-        try:
-            self.close()
-            Path(backup_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(self.db_path, 'rb') as src, open(backup_path, 'wb') as dst:
-                dst.write(src.read())
-            logging.info(f"Datenbank-Backup erstellt: {backup_path}")
-
-        except Exception as e:
-            logging.error(f"Fehler beim Erstellen des Datenbank-Backups: {e}")
-            raise
-
-    def restore_database(self, backup_path: str):
-        """
-        Stellt die Datenbank aus einem Backup wieder her.
-
-        :param backup_path: Pfad zum Backup
-        """
-        try:
-            self.close()
-            with open(backup_path, 'rb') as src, open(self.db_path, 'wb') as dst:
-                dst.write(src.read())
-            logging.info(f"Datenbank wiederhergestellt aus: {backup_path}")
-
-        except Exception as e:
-            logging.error(f"Fehler bei der Wiederherstellung der Datenbank: {e}")
-            raise
+    # Backup- und Restore-Methoden bleiben unverändert

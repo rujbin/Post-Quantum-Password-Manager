@@ -3,9 +3,10 @@
 import logging
 from PyQt5 import QtWidgets, QtGui
 from core.password_manager import PasswordManager
-from .password_dialog import PasswordDialog
-from .password_generator_dialog import PasswordGeneratorDialog
-from .styles import GLOBAL_STYLE
+from core.exceptions import PasswordManagerError
+from ui.password_dialog import PasswordDialog
+from ui.password_generator_dialog import PasswordGeneratorDialog
+from ui.styles import GLOBAL_STYLE
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -41,6 +42,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Menüleiste
         self.create_menu_bar()
+
+    def setup_connections(self):
+        """Verbindet die Signale mit den Slots"""
+        self.initialize_button.clicked.connect(self.initialize)
+        self.unlock_button.clicked.connect(self.unlock)
+        self.generate_button.clicked.connect(self.generate_password)
+        self.save_button.clicked.connect(self.save_password)
+        self.view_button.clicked.connect(self.view_passwords)
+        self.backup_button.clicked.connect(self.backup_database)
+        self.restore_button.clicked.connect(self.restore_database)
 
     def create_password_tab(self):
         """Erstellt den Tab für Passwörter"""
@@ -125,11 +136,16 @@ class MainWindow(QtWidgets.QMainWindow):
         backup_action.setStatusTip("Erstellt ein Backup der Passwort-Datenbank")
         backup_action.triggered.connect(self.backup_database)
 
+        check_encryption_action = QtWidgets.QAction("Datenbankverschlüsselung prüfen", self)
+        check_encryption_action.setStatusTip("Prüft, ob die Passwörter in der Datenbank verschlüsselt sind")
+        check_encryption_action.triggered.connect(self.check_database_encryption)
+
         exit_action = QtWidgets.QAction("Beenden", self)
         exit_action.setStatusTip("Anwendung beenden")
         exit_action.triggered.connect(self.close)
 
         file_menu.addAction(backup_action)
+        file_menu.addAction(check_encryption_action)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
 
@@ -140,17 +156,6 @@ class MainWindow(QtWidgets.QMainWindow):
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
-    def setup_connections(self):
-        """Verbindet die Signale mit den Slots"""
-        self.initialize_button.clicked.connect(self.initialize)
-        self.unlock_button.clicked.connect(self.unlock)
-        self.generate_button.clicked.connect(self.generate_password)
-        self.save_button.clicked.connect(self.save_password)
-        self.view_button.clicked.connect(self.view_passwords)
-        self.backup_button.clicked.connect(self.backup_database)
-        self.restore_button.clicked.connect(self.restore_database)
-
-    # Methoden für die Buttons und Aktionen
     def initialize(self):
         """Initialisiert den Passwort-Manager"""
         try:
@@ -170,6 +175,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Erfolg",
                 "Passwort-Manager erfolgreich initialisiert!"
             )
+        except PasswordManagerError as e:
+            self.status_bar.showMessage(f"Initialisierung fehlgeschlagen: {str(e)}")
+            QtWidgets.QMessageBox.warning(self, "Fehler", str(e))
         except Exception as e:
             self.status_bar.showMessage(f"Initialisierung fehlgeschlagen: {str(e)}")
             QtWidgets.QMessageBox.critical(self, "Fehler", str(e))
@@ -229,9 +237,10 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(self, "Fehler", str(e))
 
     def view_passwords(self):
+        """Zeigt die gespeicherten Passwörter an"""
         try:
             passwords = self.pm.get_passwords()
-            dialog = PasswordDialog(passwords, self)  # Korrekte Übergabe des Elternteils
+            dialog = PasswordDialog(passwords, self)
             dialog.exec_()
         except Exception as e:
             self.status_bar.showMessage(f"Passwörter können nicht angezeigt werden: {str(e)}")
@@ -246,7 +255,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def backup_database(self):
         """Erstellt ein Datenbank-Backup"""
         try:
-            # Backup-Pfad wählen
             backup_path, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Datenbank-Backup speichern",
@@ -274,7 +282,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def restore_database(self):
         """Stellt die Datenbank aus einem Backup wieder her"""
         try:
-            # Backup-Pfad wählen
             backup_path, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Datenbank-Backup wiederherstellen",
@@ -297,6 +304,38 @@ class MainWindow(QtWidgets.QMainWindow):
                 self,
                 "Wiederherstellungs-Fehler",
                 f"Fehler bei der Wiederherstellung: {str(e)}"
+            )
+
+    def check_database_encryption(self):
+        """Überprüft, ob die Passwörter in der Datenbank verschlüsselt sind"""
+        try:
+            if not self.pm.master_key:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Fehler",
+                    "Bitte entsperren Sie den Passwort-Manager zuerst."
+                )
+                return
+
+            is_encrypted = self.pm.check_database_encryption()
+            if is_encrypted:
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Datenbankverschlüsselung",
+                    "Die Passwörter in der Datenbank sind verschlüsselt."
+                )
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Datenbankverschlüsselung",
+                    "Die Passwörter in der Datenbank sind NICHT verschlüsselt!"
+                )
+        except Exception as e:
+            logging.error(f"Fehler bei der Überprüfung der Datenbankverschlüsselung: {e}")
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Fehler",
+                f"Fehler bei der Überprüfung der Datenbankverschlüsselung: {str(e)}"
             )
 
     def show_about(self):

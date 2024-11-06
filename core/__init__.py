@@ -14,19 +14,15 @@ from .config import Config
 from .exceptions import (
     PasswordManagerError,
     ConfigError,
-    DatabaseError,
     SecurityError,
-    ValidationError,
-    AuthenticationError,
+    DatabaseError,
     EncryptionError,
     DecryptionError,
-    BackupError,
-    ImportError,
-    ExportError,
+    AuthenticationError,
     PasswordError,
-    ConfigValidationError,
-    DatabaseConnectionError,
-    DatabaseQueryError,
+    BackupError,
+    DataImportError,  # Aktualisiert
+    DataExportError,  # Aktualisiert
 )
 
 from .password_manager import PasswordManager
