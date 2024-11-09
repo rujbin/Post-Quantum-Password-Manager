@@ -22,5 +22,5 @@ Der Passwort-Manager implementiert verschiedene Sicherheitsmaßnahmen, darunter:
 ## To-Dos  
 1. Automatisches Leeren der Zwischenablage: Implementieren einer Funktion, die die Zwischenablage nach dem Kopieren von Passwörtern automatisch leert.
 2. Zwei-Faktor-Authentifizierung (2FA)
-3. Regelmäßige Sicherheitsüberprüfungen: Führen Sie regelmäßige Sicherheitsüberprüfungen und Penetrationstests durch.
+3. Regelmäßige Sicherheitsüberprüfungen: Regelmäßige Sicherheitsüberprüfungen und Penetrationstests.
 4. Benutzeraufklärung: Informieren Sie die Benutzer über bewährte Sicherheitspraktiken. ( Über eine Blog-Webseite)
